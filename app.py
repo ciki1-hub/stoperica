@@ -8,11 +8,11 @@ sessions = []
 
 @app.route('/upload', methods=['POST'])
 def upload_session():
-    data = request.json
+    data = request.json  # Get JSON data from the request
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
-    # Add a timestamp and user identifier (you can modify this to include user-specific data)
+    # Add a timestamp and user identifier
     data['upload_time'] = datetime.now().isoformat()
     data['user_id'] = request.remote_addr  # Use IP as a simple user identifier
 
@@ -21,11 +21,7 @@ def upload_session():
 
 @app.route('/sessions', methods=['GET'])
 def get_sessions():
-    user_id = request.args.get('user_id')
-    if user_id:
-        user_sessions = [session for session in sessions if session.get('user_id') == user_id]
-        return jsonify(user_sessions), 200
-    return jsonify(sessions), 200
+    return jsonify(sessions), 200  # Return all sessions
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
