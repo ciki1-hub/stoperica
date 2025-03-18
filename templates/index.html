@@ -1,1 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap; /* Preserve formatting */
+        }
+    </style>
+</head>
+<body>
+    <h1>Session Viewer</h1>
+    <form onsubmit="fetchSessions(); return false;">
+        <label for="username">Username:</label>
+        <input type="text" id="username" placeholder="Enter username">
+        <button type="submit">Filter</button>
+    </form>
 
+    <h2>Session Data</h2>
+    <pre id="session-data">
+        <!-- Session data will be displayed here -->
+    </pre>
+
+    <script>
+        // Fetch and display session data
+        async function fetchSessions() {
+            const username = document.getElementById('username').value;
+            const response = await fetch(`/sessions?username=${username}`);
+            const data = await response.json();
+            document.getElementById('session-data').textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Fetch sessions when the page loads
+        fetchSessions();
+    </script>
+</body>
+</html>
