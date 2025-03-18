@@ -3,143 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Session Upload</title>
+    <title>Session Viewer</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
         form {
-            max-width: 400px;
-            margin: 0 auto;
+            margin-bottom: 20px;
         }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .message {
-            margin-top: 20px;
+        pre {
+            background-color: #f4f4f4;
             padding: 10px;
-            border-radius: 4px;
+            border-radius: 5px;
+            white-space: pre-wrap; /* Preserve formatting */
         }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
+        .session {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
+        .session h3 {
+            margin-top: 0;
+        }
+        .session p {
+            margin: 5px 0;
         }
     </style>
 </head>
 <body>
-    <h1>Upload Session</h1>
-    <form id="uploadForm">
-        <label for="id">Session ID:</label>
-        <input type="text" id="id" name="id" required>
-
-        <label for="name">Session Name:</label>
-        <input type="text" id="name" name="name" required>
-
-        <label for="date">Date:</label>
-        <input type="text" id="date" name="date" required>
-
-        <label for="startTime">Start Time:</label>
-        <input type="text" id="startTime" name="startTime" required>
-
-        <label for="fastestLap">Fastest Lap:</label>
-        <input type="text" id="fastestLap" name="fastestLap" required>
-
-        <label for="slowestLap">Slowest Lap:</label>
-        <input type="text" id="slowestLap" name="slowestLap" required>
-
-        <label for="averageLap">Average Lap:</label>
-        <input type="text" id="averageLap" name="averageLap" required>
-
-        <label for="consistency">Consistency:</label>
-        <input type="text" id="consistency" name="consistency" required>
-
-        <label for="totalTime">Total Time:</label>
-        <input type="text" id="totalTime" name="totalTime" required>
-
-        <label for="location">Location:</label>
-        <input type="text" id="location" name="location" required>
-
-        <label for="dateTime">Date Time:</label>
-        <input type="text" id="dateTime" name="dateTime" required>
-
-        <label for="laps">Laps (comma-separated):</label>
-        <textarea id="laps" name="laps" required></textarea>
-
-        <label for="sectors">Sectors (comma-separated, semicolon for multiple sectors):</label>
-        <textarea id="sectors" name="sectors" required></textarea>
-
-        <button type="submit">Upload Session</button>
+    <h1>Session Viewer</h1>
+    <form onsubmit="fetchSessions(); return false;">
+        <label for="username">Filter by Username:</label>
+        <input type="text" id="username" placeholder="Enter username">
+        <button type="submit">Filter</button>
     </form>
 
-    <div id="message" class="message"></div>
+    <h2>Session Data</h2>
+    <div id="session-data">
+        <!-- Session data will be displayed here -->
+    </div>
 
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', function (e) {
-            e.preventDefault();
+        // Fetch and display session data
+        async function fetchSessions() {
+            const username = document.getElementById('username').value;
+            const response = await fetch(`/sessions?username=${username}`);
+            const data = await response.json();
+            displaySessions(data);
+        }
 
-            const formData = {
-                id: document.getElementById('id').value,
-                name: document.getElementById('name').value,
-                date: document.getElementById('date').value,
-                startTime: document.getElementById('startTime').value,
-                fastestLap: document.getElementById('fastestLap').value,
-                slowestLap: document.getElementById('slowestLap').value,
-                averageLap: document.getElementById('averageLap').value,
-                consistency: document.getElementById('consistency').value,
-                totalTime: document.getElementById('totalTime').value,
-                location: document.getElementById('location').value,
-                dateTime: document.getElementById('dateTime').value,
-                laps: document.getElementById('laps').value.split(','),
-                sectors: document.getElementById('sectors').value.split(';').map(sector => sector.split(','))
-            };
+        // Display session data in a structured format
+        function displaySessions(sessions) {
+            const sessionDataDiv = document.getElementById('session-data');
+            sessionDataDiv.innerHTML = ''; // Clear previous data
 
-            fetch('/upload', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                const messageDiv = document.getElementById('message');
-                if (data.message) {
-                    messageDiv.textContent = data.message;
-                    messageDiv.className = 'message success';
-                } else if (data.error) {
-                    messageDiv.textContent = data.error;
-                    messageDiv.className = 'message error';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+            if (sessions.length === 0) {
+                sessionDataDiv.textContent = 'No sessions found.';
+                return;
+            }
+
+            sessions.forEach(session => {
+                const sessionDiv = document.createElement('div');
+                sessionDiv.className = 'session';
+
+                sessionDiv.innerHTML = `
+                    <h3>${session.name}</h3>
+                    <p><strong>ID:</strong> ${session.id}</p>
+                    <p><strong>Date:</strong> ${session.date}</p>
+                    <p><strong>Start Time:</strong> ${session.startTime}</p>
+                    <p><strong>Fastest Lap:</strong> ${session.fastestLap}</p>
+                    <p><strong>Slowest Lap:</strong> ${session.slowestLap}</p>
+                    <p><strong>Average Lap:</strong> ${session.averageLap}</p>
+                    <p><strong>Consistency:</strong> ${session.consistency}</p>
+                    <p><strong>Total Time:</strong> ${session.totalTime}</p>
+                    <p><strong>Location:</strong> ${session.location}</p>
+                    <p><strong>Date Time:</strong> ${session.dateTime}</p>
+                    <p><strong>Laps:</strong> ${session.laps.join(', ')}</p>
+                    <p><strong>Sectors:</strong> ${session.sectors.map(sector => sector.join(', ')).join('; ')}</p>
+                    <p><strong>Upload Time:</strong> ${session.upload_time}</p>
+                    <p><strong>User ID:</strong> ${session.user_id}</p>
+                `;
+
+                sessionDataDiv.appendChild(sessionDiv);
             });
-        });
+        }
+
+        // Fetch sessions when the page loads
+        fetchSessions();
     </script>
 </body>
 </html>
