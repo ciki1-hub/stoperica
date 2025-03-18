@@ -19,14 +19,13 @@ def upload_session():
         return jsonify({"error": "No data provided"}), 400
 
     # Ensure required fields are present
-    required_fields = ["id", "name", "date", "startTime", "fastestLap", "slowestLap", "averageLap", "consistency", "totalTime", "location", "dateTime", "laps", "sectors"]
+    required_fields = ["id", "username", "name", "date", "startTime", "fastestLap", "slowestLap", "averageLap", "consistency", "totalTime", "location", "dateTime", "laps", "sectors"]
     for field in required_fields:
         if field not in data:
             return jsonify({"error": f"Missing required field: {field}"}), 400
 
-    # Add a timestamp and user identifier
+    # Add a timestamp
     data['upload_time'] = datetime.now().isoformat()
-    data['user_id'] = request.remote_addr  # Use IP as a simple user identifier
 
     sessions.append(data)  # Store the session
     return jsonify({"message": "Session uploaded successfully"}), 200
