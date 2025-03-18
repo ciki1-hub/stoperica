@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from datetime import datetime
 
 app = Flask(__name__)
@@ -6,6 +6,12 @@ app = Flask(__name__)
 # In-memory storage for sessions (replace this with a database in production)
 sessions = []
 
+# Serve the web interface
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Handle session uploads
 @app.route('/upload', methods=['POST'])
 def upload_session():
     data = request.json  # Get JSON data from the request
@@ -25,6 +31,7 @@ def upload_session():
     sessions.append(data)
     return jsonify({"message": "Session uploaded successfully"}), 200
 
+# Return sessions (filtered by username if provided)
 @app.route('/sessions', methods=['GET'])
 def get_sessions():
     username = request.args.get('username')  # Get the username from query parameters
