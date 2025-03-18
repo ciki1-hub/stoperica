@@ -9,15 +9,6 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        form {
-            margin-bottom: 20px;
-        }
-        pre {
-            background-color: #f4f4f4;
-            padding: 10px;
-            border-radius: 5px;
-            white-space: pre-wrap; /* Preserve formatting */
-        }
         .session {
             margin-bottom: 20px;
             padding: 10px;
@@ -30,17 +21,16 @@
         .session p {
             margin: 5px 0;
         }
+        .lap {
+            margin-left: 20px;
+        }
+        .sector {
+            margin-left: 40px;
+        }
     </style>
 </head>
 <body>
     <h1>Session Viewer</h1>
-    <form onsubmit="fetchSessions(); return false;">
-        <label for="username">Filter by Username:</label>
-        <input type="text" id="username" placeholder="Enter username">
-        <button type="submit">Filter</button>
-    </form>
-
-    <h2>Session Data</h2>
     <div id="session-data">
         <!-- Session data will be displayed here -->
     </div>
@@ -48,13 +38,12 @@
     <script>
         // Fetch and display session data
         async function fetchSessions() {
-            const username = document.getElementById('username').value;
-            const response = await fetch(`/sessions?username=${username}`);
+            const response = await fetch('/sessions');
             const data = await response.json();
             displaySessions(data);
         }
 
-        // Display session data in a structured format
+        // Display session data in the desired format
         function displaySessions(sessions) {
             const sessionDataDiv = document.getElementById('session-data');
             sessionDataDiv.innerHTML = ''; // Clear previous data
@@ -69,22 +58,33 @@
                 sessionDiv.className = 'session';
 
                 sessionDiv.innerHTML = `
-                    <h3>${session.name}</h3>
-                    <p><strong>ID:</strong> ${session.id}</p>
+                    <h3>User ID: ${session.username}</h3>
+                    <p><strong>Session:</strong> ${session.name}</p>
                     <p><strong>Date:</strong> ${session.date}</p>
-                    <p><strong>Start Time:</strong> ${session.startTime}</p>
+                    <p><strong>Total Time:</strong> ${session.totalTime}</p>
+                    <p><strong>Location:</strong> ${session.location}</p>
                     <p><strong>Fastest Lap:</strong> ${session.fastestLap}</p>
                     <p><strong>Slowest Lap:</strong> ${session.slowestLap}</p>
                     <p><strong>Average Lap:</strong> ${session.averageLap}</p>
                     <p><strong>Consistency:</strong> ${session.consistency}</p>
-                    <p><strong>Total Time:</strong> ${session.totalTime}</p>
-                    <p><strong>Location:</strong> ${session.location}</p>
-                    <p><strong>Date Time:</strong> ${session.dateTime}</p>
-                    <p><strong>Laps:</strong> ${session.laps.join(', ')}</p>
-                    <p><strong>Sectors:</strong> ${session.sectors.map(sector => sector.join(', ')).join('; ')}</p>
-                    <p><strong>Upload Time:</strong> ${session.upload_time}</p>
-                    <p><strong>User ID:</strong> ${session.user_id}</p>
                 `;
+
+                // Display laps and sectors
+                session.laps.forEach((lap, lapIndex) => {
+                    const lapDiv = document.createElement('div');
+                    lapDiv.className = 'lap';
+                    lapDiv.innerHTML = `<strong>Lap ${lapIndex + 1}:</strong> ${lap}`;
+
+                    // Display sectors for this lap
+                    session.sectors[lapIndex].forEach((sector, sectorIndex) => {
+                        const sectorDiv = document.createElement('div');
+                        sectorDiv.className = 'sector';
+                        sectorDiv.innerHTML = `<strong>Sector ${sectorIndex + 1}:</strong> ${sector}`;
+                        lapDiv.appendChild(sectorDiv);
+                    });
+
+                    sessionDiv.appendChild(lapDiv);
+                });
 
                 sessionDataDiv.appendChild(sessionDiv);
             });
