@@ -1,5 +1,11 @@
-python
-Copy
+from flask import Flask, request, jsonify, render_template
+from datetime import datetime
+
+app = Flask(__name__)
+
+# In-memory storage for sessions (replace this with a database in production)
+sessions = []
+
 @app.route('/upload', methods=['POST'])
 def upload_session():
     data = request.json  # Get JSON data from the request
@@ -53,3 +59,10 @@ Consistency: {session.get('consistency', 'N/A')}
         formatted_sessions.append(formatted_session)
 
     return "\n".join(formatted_sessions), 200, {'Content-Type': 'text/plain'}
+
+@app.route('/')
+def index():
+    return render_template('index.html')  # Serve the web interface
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
