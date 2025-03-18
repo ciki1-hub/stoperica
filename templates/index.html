@@ -3,47 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Session Viewer</title>
+    <title>Session Upload</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
         form {
-            margin-bottom: 20px;
+            max-width: 400px;
+            margin: 0 auto;
         }
-        pre {
-            background-color: #f4f4f4;
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .message {
+            margin-top: 20px;
             padding: 10px;
-            border-radius: 5px;
-            white-space: pre-wrap; /* Preserve formatting */
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
         }
     </style>
 </head>
 <body>
-    <h1>Session Viewer</h1>
-    <form onsubmit="fetchSessions(); return false;">
-        <label for="username">Username:</label>
-        <input type="text" id="username" placeholder="Enter username">
-        <button type="submit">Filter</button>
+    <h1>Upload Session</h1>
+    <form id="uploadForm">
+        <label for="id">Session ID:</label>
+        <input type="text" id="id" name="id" required>
+
+        <label for="name">Session Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="date">Date:</label>
+        <input type="text" id="date" name="date" required>
+
+        <label for="startTime">Start Time:</label>
+        <input type="text" id="startTime" name="startTime" required>
+
+        <label for="fastestLap">Fastest Lap:</label>
+        <input type="text" id="fastestLap" name="fastestLap" required>
+
+        <label for="slowestLap">Slowest Lap:</label>
+        <input type="text" id="slowestLap" name="slowestLap" required>
+
+        <label for="averageLap">Average Lap:</label>
+        <input type="text" id="averageLap" name="averageLap" required>
+
+        <label for="consistency">Consistency:</label>
+        <input type="text" id="consistency" name="consistency" required>
+
+        <label for="totalTime">Total Time:</label>
+        <input type="text" id="totalTime" name="totalTime" required>
+
+        <label for="location">Location:</label>
+        <input type="text" id="location" name="location" required>
+
+        <label for="dateTime">Date Time:</label>
+        <input type="text" id="dateTime" name="dateTime" required>
+
+        <label for="laps">Laps (comma-separated):</label>
+        <textarea id="laps" name="laps" required></textarea>
+
+        <label for="sectors">Sectors (comma-separated, semicolon for multiple sectors):</label>
+        <textarea id="sectors" name="sectors" required></textarea>
+
+        <button type="submit">Upload Session</button>
     </form>
 
-    <h2>Session Data</h2>
-    <pre id="session-data">
-        <!-- Session data will be displayed here -->
-    </pre>
+    <div id="message" class="message"></div>
 
     <script>
-        // Fetch and display session data
-        async function fetchSessions() {
-            const username = document.getElementById('username').value;
-            const response = await fetch(`/sessions?username=${username}`);
-            const data = await response.json();
-            document.getElementById('session-data').textContent = JSON.stringify(data, null, 2);
-        }
+        document.getElementById('uploadForm').addEventListener('submit', function (e) {
+            e.preventDefault();
 
-        // Fetch sessions when the page loads
-        fetchSessions();
+            const formData = {
+                id: document.getElementById('id').value,
+                name: document.getElementById('name').value,
+                date: document.getElementById('date').value,
+                startTime: document.getElementById('startTime').value,
+                fastestLap: document.getElementById('fastestLap').value,
+                slowestLap: document.getElementById('slowestLap').value,
+                averageLap: document.getElementById('averageLap').value,
+                consistency: document.getElementById('consistency').value,
+                totalTime: document.getElementById('totalTime').value,
+                location: document.getElementById('location').value,
+                dateTime: document.getElementById('dateTime').value,
+                laps: document.getElementById('laps').value.split(','),
+                sectors: document.getElementById('sectors').value.split(';').map(sector => sector.split(','))
+            };
+
+            fetch('/upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messageDiv = document.getElementById('message');
+                if (data.message) {
+                    messageDiv.textContent = data.message;
+                    messageDiv.className = 'message success';
+                } else if (data.error) {
+                    messageDiv.textContent = data.error;
+                    messageDiv.className = 'message error';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
     </script>
 </body>
 </html>
