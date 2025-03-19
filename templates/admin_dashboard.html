@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <div id="sessions">
+        <!-- Sessions will be loaded here -->
+    </div>
+    <script>
+        // Fetch and display sessions
+        async function fetchSessions() {
+            const response = await fetch('/admin/sessions');
+            const sessions = await response.json();
+            const sessionsDiv = document.getElementById('sessions');
+            sessionsDiv.innerHTML = '';
+
+            sessions.forEach(session => {
+                const sessionDiv = document.createElement('div');
+                sessionDiv.innerHTML = `
+                    <h3>Session ID: ${session.id}</h3>
+                    <p>Username: ${session.username}</p>
+                    <p>Name: ${session.name}</p>
+                    <p>Date: ${session.date}</p>
+                    <button onclick="deleteSession('${session.id}')">Delete</button>
+                    <hr>
+                `;
+                sessionsDiv.appendChild(sessionDiv);
+            });
+        }
+
+        // Delete a session
+        async function deleteSession(sessionId) {
+            const response = await fetch(`/admin/delete-session/${sessionId}`, {
+                method: 'DELETE'
+            });
+            if (response.ok) {
+                alert('Session deleted successfully');
+                fetchSessions(); // Refresh the list
+            } else {
+                alert('Failed to delete session');
+            }
+        }
+
+        // Load sessions when the page loads
+        fetchSessions();
+    </script>
+</body>
+</html>
