@@ -1,11 +1,13 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template  # Add render_template here
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Configure the PostgreSQL database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://mx_smolevo_user:your_password@dpg-cvd1h81u0jms739j2pig-a.oregon-postgres.render.com/mx_smolevo'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://mx_smolevo_user:9ai3RH9QBiCN6l0JbcgQ1EAMMvsJ07DO@dpg-cvd1h81u0jms739j2pig-a/mx_smolevo'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize the database
@@ -14,7 +16,7 @@ db = SQLAlchemy(app)
 # Define the Session model
 class Session(db.Model):
     id = db.Column(db.String, primary_key=True)
-    username = db.Column(db.String, nullable=False)
+    username = db.Column(db.String, nullable=False)  # Associate sessions with a user
     name = db.Column(db.String, nullable=False)
     date = db.Column(db.String, nullable=False)
     startTime = db.Column(db.String, nullable=False)
@@ -35,7 +37,7 @@ with app.app_context():
 # Serve the index.html file
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html')  # Render the index.html template
 
 # Handle session uploads
 @app.route('/upload', methods=['POST'])
@@ -53,7 +55,7 @@ def upload_session():
     # Create a new session object
     session = Session(
         id=data['id'],
-        username=data['username'],
+        username=data['username'],  # Associate the session with the user
         name=data['name'],
         date=data['date'],
         startTime=data['startTime'],
@@ -73,6 +75,33 @@ def upload_session():
     db.session.commit()
 
     return jsonify({"message": "Session uploaded successfully"}), 200
+
+# Handle session deletion
+@app.route('/delete-session/<session_id>', methods=['DELETE'])
+def delete_session(session_id):
+    try:
+        # Get the username from the request headers
+        username = request.headers.get('Username')
+        if not username:
+            return jsonify({"error": "Username header is required"}), 400
+
+        # Find the session by ID
+        session = Session.query.get(session_id)
+        if not session:
+            return jsonify({"error": "Session not found"}), 404
+
+        # Ensure the current user owns the session
+        if session.username != username:
+            return jsonify({"error": "You are not authorized to delete this session"}), 403
+
+        # Delete the session from the database
+        db.session.delete(session)
+        db.session.commit()
+
+        return jsonify({"message": "Session deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 # Return paginated and filtered sessions
 @app.route('/sessions', methods=['GET'])
