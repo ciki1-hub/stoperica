@@ -59,10 +59,29 @@ def handle_exception(e):
 def index():
     return render_template('index.html')
 
-# About page route
-@app.route('/about')
-def about():
-    return render_template('about.html')
+# Admin login route
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        # Hardcoded admin credentials (not secure for production)
+        if username == 'admin' and password == 'Bitola123!@#1':
+            session['admin_logged_in'] = True
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return "Invalid credentials", 401
+
+    return render_template('admin_login.html')
+
+# Admin dashboard route
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    return render_template('admin_dashboard.html')
 
 # Handle session uploads
 @app.route('/upload', methods=['POST'])
@@ -77,27 +96,46 @@ def upload_session():
             if field not in data:
                 return jsonify({"error": f"Missing required field: {field}"}), 400
 
-        session = Session(
-            id=data['id'],
-            username=data['username'],
-            name=data['name'],
-            date=data['date'],
-            startTime=data['startTime'],
-            fastestLap=data['fastestLap'],
-            slowestLap=data['slowestLap'],
-            averageLap=data['averageLap'],
-            consistency=data['consistency'],
-            totalTime=data['totalTime'],
-            location=data['location'],
-            dateTime=data['dateTime'],
-            laps=data['laps'],
-            sectors=data['sectors']
-        )
-
-        db.session.add(session)
-        db.session.commit()
-
-        return jsonify({"message": "Session uploaded successfully"}), 200
+        # Check if a session with the same ID already exists
+        existing_session = Session.query.get(data['id'])
+        if existing_session:
+            # Update the existing session
+            existing_session.username = data['username']
+            existing_session.name = data['name']
+            existing_session.date = data['date']
+            existing_session.startTime = data['startTime']
+            existing_session.fastestLap = data['fastestLap']
+            existing_session.slowestLap = data['slowestLap']
+            existing_session.averageLap = data['averageLap']
+            existing_session.consistency = data['consistency']
+            existing_session.totalTime = data['totalTime']
+            existing_session.location = data['location']
+            existing_session.dateTime = data['dateTime']
+            existing_session.laps = data['laps']
+            existing_session.sectors = data['sectors']
+            db.session.commit()
+            return jsonify({"message": "Session updated successfully"}), 200
+        else:
+            # Insert a new session
+            session = Session(
+                id=data['id'],
+                username=data['username'],
+                name=data['name'],
+                date=data['date'],
+                startTime=data['startTime'],
+                fastestLap=data['fastestLap'],
+                slowestLap=data['slowestLap'],
+                averageLap=data['averageLap'],
+                consistency=data['consistency'],
+                totalTime=data['totalTime'],
+                location=data['location'],
+                dateTime=data['dateTime'],
+                laps=data['laps'],
+                sectors=data['sectors']
+            )
+            db.session.add(session)
+            db.session.commit()
+            return jsonify({"message": "Session uploaded successfully"}), 200
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Error uploading session: {e}")
