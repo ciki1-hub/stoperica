@@ -30,10 +30,28 @@ def upload_session():
     sessions.append(data)  # Store the session
     return jsonify({"message": "Session uploaded successfully"}), 200
 
-# Return all sessions
+# Return paginated and filtered sessions
 @app.route('/sessions', methods=['GET'])
 def get_sessions():
-    return jsonify(sessions), 200
+    page = request.args.get('page', default=1, type=int)
+    limit = request.args.get('limit', default=10, type=int)
+    search = request.args.get('search', default='', type=str)
+
+    # Filter sessions by username (case-insensitive)
+    filtered_sessions = [session for session in sessions if search.lower() in session['username'].lower()]
+
+    # Paginate the filtered sessions
+    start = (page - 1) * limit
+    end = start + limit
+    paginated_sessions = filtered_sessions[start:end]
+
+    # Calculate total pages
+    total_pages = (len(filtered_sessions) + limit - 1) // limit
+
+    return jsonify({
+        'sessions': paginated_sessions,
+        'totalPages': total_pages
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
