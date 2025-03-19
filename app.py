@@ -9,9 +9,11 @@ from flask_migrate import Migrate
 app = Flask(__name__)
 CORS(app)
 
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 app.logger.info("Starting Flask application...")
 
+# Configure the PostgreSQL database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://mx_smolevo_user:9ai3RH9QBiCN6l0JbcgQ1EAMMvsJ07DO@dpg-cvd1h81u0jms739j2pig-a/mx_smolevo'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -21,25 +23,31 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_size': 10,
     'max_overflow': 20,
 }
-app.config['SECRET_KEY'] = 'your-secret-key'
+app.config['SECRET_KEY'] = 'your-secret-key'  # Required for Flask-Login
 
+# Initialize the database
 db = SQLAlchemy(app)
+
+# Initialize Flask-Migrate
 migrate = Migrate(app, db)
 
+# Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+# Define the Admin model
 class Admin(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(50), nullable=False)
+    password = db.Column(db.String(50), nullable=False)  # Plain text password
 
     def set_password(self, password):
-        self.password = password
+        self.password = password  # Store password as plain text
 
     def check_password(self, password):
-        return self.password == password
+        return self.password == password  # Compare plain text passwords
 
+# Define the Session model
 class Session(db.Model):
     id = db.Column(db.String, primary_key=True)
     username = db.Column(db.String, nullable=False)
@@ -56,22 +64,27 @@ class Session(db.Model):
     laps = db.Column(db.JSON, nullable=False)
     sectors = db.Column(db.JSON, nullable=False)
 
+# Create the database tables
 with app.app_context():
     db.create_all()
+
+    # Add the admin user if it doesn't already exist
     admin_username = "admin"
-    admin_password = "Bitola123!@#1"
+    admin_password = "Bitola123!@#1"  # Plain text password
     admin_user = Admin.query.filter_by(username=admin_username).first()
     if not admin_user:
         admin_user = Admin(username=admin_username)
-        admin_user.set_password(admin_password)
+        admin_user.set_password(admin_password)  # Set plain text password
         db.session.add(admin_user)
         db.session.commit()
         app.logger.info("Admin user created successfully.")
 
+# User loader for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
     return Admin.query.get(int(user_id))
 
+# Admin login route
 @app.route('/admin/login', methods=['POST'])
 def admin_login():
     data = request.json
@@ -79,18 +92,20 @@ def admin_login():
     password = data.get('password')
 
     admin = Admin.query.filter_by(username=username).first()
-    if admin and admin.check_password(password):
+    if admin and admin.check_password(password):  # Compare plain text passwords
         login_user(admin)
         return jsonify({"message": "Login successful"}), 200
     else:
         return jsonify({"error": "Invalid username or password"}), 401
 
+# Admin logout route
 @app.route('/admin/logout', methods=['POST'])
 @login_required
 def admin_logout():
     logout_user()
     return jsonify({"message": "Logout successful"}), 200
 
+# Handle session uploads
 @app.route('/upload', methods=['POST'])
 def upload_session():
     try:
@@ -129,6 +144,7 @@ def upload_session():
         app.logger.error(f"Error uploading session: {e}")
         return jsonify({"error": str(e)}), 500
 
+# Return paginated and filtered sessions
 @app.route('/sessions', methods=['GET'])
 def get_sessions():
     try:
@@ -167,6 +183,7 @@ def get_sessions():
         app.logger.error(f"Error fetching sessions: {e}")
         return jsonify({"error": str(e)}), 500
 
+# Delete a session (protected route)
 @app.route('/delete-session/<session_id>', methods=['DELETE'])
 @login_required
 def delete_session(session_id):
@@ -184,6 +201,7 @@ def delete_session(session_id):
         app.logger.error(f"Error deleting session: {e}")
         return jsonify({"error": str(e)}), 500
 
+# Edit a session (protected route)
 @app.route('/edit-session/<session_id>', methods=['PUT'])
 @login_required
 def edit_session(session_id):
@@ -193,6 +211,7 @@ def edit_session(session_id):
         if not session:
             return jsonify({"error": "Session not found"}), 404
 
+        # Update session fields
         session.name = data.get('name', session.name)
         session.date = data.get('date', session.date)
         session.startTime = data.get('startTime', session.startTime)
