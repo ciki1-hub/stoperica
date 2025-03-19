@@ -27,10 +27,22 @@
         .sector {
             margin-left: 40px;
         }
+        #searchBox {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
     <h1>Session Viewer</h1>
+
+    <!-- Search Box -->
+    <input type="text" id="searchBox" placeholder="Search by username...">
+
     <div id="session-data">
         <!-- Session data will be displayed here -->
     </div>
@@ -89,6 +101,30 @@
                 sessionDataDiv.appendChild(sessionDiv);
             });
         }
+
+        // Filter sessions by username
+        function filterSessions(sessions, searchTerm) {
+            return sessions.filter(session =>
+                session.username.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // Add event listener to the search box
+        const searchBox = document.getElementById('searchBox');
+        searchBox.addEventListener('input', async () => {
+            const searchTerm = searchBox.value.trim();
+            const response = await fetch('/sessions');
+            const sessions = await response.json();
+
+            if (searchTerm === '') {
+                // If the search box is empty, display all sessions
+                displaySessions(sessions);
+            } else {
+                // Filter sessions by username
+                const filteredSessions = filterSessions(sessions, searchTerm);
+                displaySessions(filteredSessions);
+            }
+        });
 
         // Fetch sessions when the page loads
         fetchSessions();
