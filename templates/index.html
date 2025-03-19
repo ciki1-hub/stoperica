@@ -3,68 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Session Viewer</title>
+    <title>Moto StopWatch</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
         }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin: 20px 0;
+            color: #2c3e50;
+        }
+
         #searchBox {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            width: 80%;
+            max-width: 600px;
+            padding: 12px;
+            margin: 20px auto;
+            display: block;
+            border: 2px solid #3498db;
+            border-radius: 8px;
             font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
         }
+
+        #searchBox:focus {
+            border-color: #2980b9;
+        }
+
         #session-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(250px, 1fr)); /* 4 columns with a minimum width of 250px */
-            gap: 20px; /* Space between cards */
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
+
         .session-card {
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 15px;
-            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
+
+        .session-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
         .session-card h3 {
             margin-top: 0;
+            font-size: 1.5rem;
+            color: #3498db;
         }
+
         .session-card p {
-            margin: 5px 0;
+            margin: 8px 0;
+            font-size: 1rem;
+            color: #555;
         }
+
         .lap {
             margin-left: 20px;
+            font-size: 0.9rem;
+            color: #777;
         }
+
         .sector {
             margin-left: 40px;
+            font-size: 0.85rem;
+            color: #999;
         }
+
         #pagination {
-            margin-top: 20px;
+            margin-top: 30px;
             text-align: center;
         }
+
         #pagination button {
             padding: 10px 20px;
             margin: 0 5px;
-            border: 1px solid #ccc;
+            border: none;
             border-radius: 5px;
-            background-color: #f9f9f9;
+            background-color: #3498db;
+            color: #fff;
+            font-size: 1rem;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
+
         #pagination button:disabled {
-            background-color: #ddd;
+            background-color: #bdc3c7;
             cursor: not-allowed;
         }
+
+        #pagination button:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+
         #loading {
             text-align: center;
-            margin: 20px 0;
+            margin: 30px 0;
+            font-size: 1.2rem;
+            color: #3498db;
             display: none;
         }
     </style>
 </head>
 <body>
-    <h1>Session Viewer</h1>
+    <h1>Moto StopWatch</h1>
 
     <!-- Search Box -->
     <input type="text" id="searchBox" placeholder="Search by username...">
