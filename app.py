@@ -4,6 +4,7 @@ from flask_cors import CORS
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import logging
 from datetime import datetime
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 CORS(app)
@@ -27,6 +28,9 @@ app.config['SECRET_KEY'] = 'your-secret-key'  # Required for Flask-Login
 # Initialize the database
 db = SQLAlchemy(app)
 
+# Initialize Flask-Migrate
+migrate = Migrate(app, db)
+
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -35,7 +39,7 @@ login_manager.init_app(app)
 class Admin(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(50), nullable=False)  # Store plain text password
+    password = db.Column(db.String(50), nullable=False)  # Plain text password
 
     def set_password(self, password):
         self.password = password  # Store password as plain text
