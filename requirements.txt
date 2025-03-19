@@ -6,3 +6,4 @@ flask-cors
 flask-login
 python-dotenv
 flask-migrate
+Flask-Migrate==4.0.5
