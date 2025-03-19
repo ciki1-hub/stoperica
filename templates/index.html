@@ -9,24 +9,6 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        .session {
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .session h3 {
-            margin-top: 0;
-        }
-        .session p {
-            margin: 5px 0;
-        }
-        .lap {
-            margin-left: 20px;
-        }
-        .sector {
-            margin-left: 40px;
-        }
         #searchBox {
             width: 100%;
             padding: 10px;
@@ -34,6 +16,29 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             font-size: 16px;
+        }
+        #session-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Adjust minmax for session card size */
+            gap: 20px; /* Space between cards */
+        }
+        .session-card {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        .session-card h3 {
+            margin-top: 0;
+        }
+        .session-card p {
+            margin: 5px 0;
+        }
+        .lap {
+            margin-left: 20px;
+        }
+        .sector {
+            margin-left: 40px;
         }
         #pagination {
             margin-top: 20px;
@@ -64,9 +69,9 @@
     <!-- Search Box -->
     <input type="text" id="searchBox" placeholder="Search by username...">
 
-    <!-- Session Data -->
-    <div id="session-data">
-        <!-- Session data will be displayed here -->
+    <!-- Session Grid -->
+    <div id="session-grid">
+        <!-- Session cards will be displayed here -->
     </div>
 
     <!-- Loading Spinner -->
@@ -97,21 +102,21 @@
             updatePagination();
         }
 
-        // Display session data in the desired format
+        // Display session data in a grid layout
         function displaySessions(sessions) {
-            const sessionDataDiv = document.getElementById('session-data');
-            sessionDataDiv.innerHTML = ''; // Clear previous data
+            const sessionGrid = document.getElementById('session-grid');
+            sessionGrid.innerHTML = ''; // Clear previous data
 
             if (sessions.length === 0) {
-                sessionDataDiv.textContent = 'No sessions found.';
+                sessionGrid.textContent = 'No sessions found.';
                 return;
             }
 
             sessions.forEach(session => {
-                const sessionDiv = document.createElement('div');
-                sessionDiv.className = 'session';
+                const sessionCard = document.createElement('div');
+                sessionCard.className = 'session-card';
 
-                sessionDiv.innerHTML = `
+                sessionCard.innerHTML = `
                     <h3>User ID: ${session.username}</h3>
                     <p><strong>Session:</strong> ${session.name}</p>
                     <p><strong>Date:</strong> ${session.date}</p>
@@ -137,10 +142,10 @@
                         lapDiv.appendChild(sectorDiv);
                     });
 
-                    sessionDiv.appendChild(lapDiv);
+                    sessionCard.appendChild(lapDiv);
                 });
 
-                sessionDataDiv.appendChild(sessionDiv);
+                sessionGrid.appendChild(sessionCard);
             });
         }
 
