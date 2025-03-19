@@ -1,22 +1,53 @@
-from flask import Flask, request, jsonify, render_template  # Add render_template here
-from datetime import datetime
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+import logging
+from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+app.logger.info("Starting Flask application...")
 
 # Configure the PostgreSQL database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://mx_smolevo_user:9ai3RH9QBiCN6l0JbcgQ1EAMMvsJ07DO@dpg-cvd1h81u0jms739j2pig-a/mx_smolevo'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+    'pool_timeout': 30,
+    'pool_size': 10,
+    'max_overflow': 20,
+}
+app.config['SECRET_KEY'] = 'your-secret-key'  # Required for Flask-Login
 
 # Initialize the database
 db = SQLAlchemy(app)
 
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# Define the Admin model
+class Admin(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
 # Define the Session model
 class Session(db.Model):
     id = db.Column(db.String, primary_key=True)
-    username = db.Column(db.String, nullable=False)  # Associate sessions with a user
+    username = db.Column(db.String, nullable=False)
     name = db.Column(db.String, nullable=False)
     date = db.Column(db.String, nullable=False)
     startTime = db.Column(db.String, nullable=False)
@@ -34,114 +65,170 @@ class Session(db.Model):
 with app.app_context():
     db.create_all()
 
-# Serve the index.html file
-@app.route('/')
-def index():
-    return render_template('index.html')  # Render the index.html template
+    # Add the admin user if it doesn't already exist
+    admin_username = "admin"
+    admin_password = "Bitola123!@#1"
+    admin_user = Admin.query.filter_by(username=admin_username).first()
+    if not admin_user:
+        admin_user = Admin(username=admin_username)
+        admin_user.set_password(admin_password)
+        db.session.add(admin_user)
+        db.session.commit()
+        app.logger.info("Admin user created successfully.")
+
+# User loader for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    return Admin.query.get(int(user_id))
+
+# Admin login route
+@app.route('/admin/login', methods=['POST'])
+def admin_login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
+    admin = Admin.query.filter_by(username=username).first()
+    if admin and admin.check_password(password):
+        login_user(admin)
+        return jsonify({"message": "Login successful"}), 200
+    else:
+        return jsonify({"error": "Invalid username or password"}), 401
+
+# Admin logout route
+@app.route('/admin/logout', methods=['POST'])
+@login_required
+def admin_logout():
+    logout_user()
+    return jsonify({"message": "Logout successful"}), 200
 
 # Handle session uploads
 @app.route('/upload', methods=['POST'])
 def upload_session():
-    data = request.json  # Get JSON data from the request
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
 
-    # Ensure required fields are present
-    required_fields = ["id", "username", "name", "date", "startTime", "fastestLap", "slowestLap", "averageLap", "consistency", "totalTime", "location", "dateTime", "laps", "sectors"]
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"Missing required field: {field}"}), 400
+        required_fields = ["id", "username", "name", "date", "startTime", "fastestLap", "slowestLap", "averageLap", "consistency", "totalTime", "location", "dateTime", "laps", "sectors"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
 
-    # Create a new session object
-    session = Session(
-        id=data['id'],
-        username=data['username'],  # Associate the session with the user
-        name=data['name'],
-        date=data['date'],
-        startTime=data['startTime'],
-        fastestLap=data['fastestLap'],
-        slowestLap=data['slowestLap'],
-        averageLap=data['averageLap'],
-        consistency=data['consistency'],
-        totalTime=data['totalTime'],
-        location=data['location'],
-        dateTime=data['dateTime'],
-        laps=data['laps'],
-        sectors=data['sectors']
-    )
+        session = Session(
+            id=data['id'],
+            username=data['username'],
+            name=data['name'],
+            date=data['date'],
+            startTime=data['startTime'],
+            fastestLap=data['fastestLap'],
+            slowestLap=data['slowestLap'],
+            averageLap=data['averageLap'],
+            consistency=data['consistency'],
+            totalTime=data['totalTime'],
+            location=data['location'],
+            dateTime=data['dateTime'],
+            laps=data['laps'],
+            sectors=data['sectors']
+        )
 
-    # Save the session to the database
-    db.session.add(session)
-    db.session.commit()
+        db.session.add(session)
+        db.session.commit()
 
-    return jsonify({"message": "Session uploaded successfully"}), 200
+        return jsonify({"message": "Session uploaded successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error uploading session: {e}")
+        return jsonify({"error": str(e)}), 500
 
-# Handle session deletion
+# Return paginated and filtered sessions
+@app.route('/sessions', methods=['GET'])
+def get_sessions():
+    try:
+        page = request.args.get('page', default=1, type=int)
+        limit = request.args.get('limit', default=10, type=int)
+        search = request.args.get('search', default='', type=str)
+
+        query = Session.query
+        if search:
+            query = query.filter(Session.username.ilike(f'%{search}%'))
+
+        sessions = query.paginate(page=page, per_page=limit, error_out=False)
+
+        sessions_list = [{
+            "id": session.id,
+            "username": session.username,
+            "name": session.name,
+            "date": session.date,
+            "startTime": session.startTime,
+            "fastestLap": session.fastestLap,
+            "slowestLap": session.slowestLap,
+            "averageLap": session.averageLap,
+            "consistency": session.consistency,
+            "totalTime": session.totalTime,
+            "location": session.location,
+            "dateTime": session.dateTime,
+            "laps": session.laps,
+            "sectors": session.sectors
+        } for session in sessions.items]
+
+        return jsonify({
+            'sessions': sessions_list,
+            'totalPages': sessions.pages
+        })
+    except Exception as e:
+        app.logger.error(f"Error fetching sessions: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Delete a session (protected route)
 @app.route('/delete-session/<session_id>', methods=['DELETE'])
+@login_required
 def delete_session(session_id):
     try:
-        # Get the username from the request headers
-        username = request.headers.get('Username')
-        if not username:
-            return jsonify({"error": "Username header is required"}), 400
-
-        # Find the session by ID
         session = Session.query.get(session_id)
         if not session:
             return jsonify({"error": "Session not found"}), 404
 
-        # Ensure the current user owns the session
-        if session.username != username:
-            return jsonify({"error": "You are not authorized to delete this session"}), 403
-
-        # Delete the session from the database
         db.session.delete(session)
         db.session.commit()
 
         return jsonify({"message": "Session deleted successfully"}), 200
     except Exception as e:
         db.session.rollback()
+        app.logger.error(f"Error deleting session: {e}")
         return jsonify({"error": str(e)}), 500
 
-# Return paginated and filtered sessions
-@app.route('/sessions', methods=['GET'])
-def get_sessions():
-    page = request.args.get('page', default=1, type=int)
-    limit = request.args.get('limit', default=10, type=int)
-    search = request.args.get('search', default='', type=str)
+# Edit a session (protected route)
+@app.route('/edit-session/<session_id>', methods=['PUT'])
+@login_required
+def edit_session(session_id):
+    try:
+        data = request.json
+        session = Session.query.get(session_id)
+        if not session:
+            return jsonify({"error": "Session not found"}), 404
 
-    # Base query
-    query = Session.query
+        # Update session fields
+        session.name = data.get('name', session.name)
+        session.date = data.get('date', session.date)
+        session.startTime = data.get('startTime', session.startTime)
+        session.fastestLap = data.get('fastestLap', session.fastestLap)
+        session.slowestLap = data.get('slowestLap', session.slowestLap)
+        session.averageLap = data.get('averageLap', session.averageLap)
+        session.consistency = data.get('consistency', session.consistency)
+        session.totalTime = data.get('totalTime', session.totalTime)
+        session.location = data.get('location', session.location)
+        session.dateTime = data.get('dateTime', session.dateTime)
+        session.laps = data.get('laps', session.laps)
+        session.sectors = data.get('sectors', session.sectors)
 
-    # Filter by username (case-insensitive)
-    if search:
-        query = query.filter(Session.username.ilike(f'%{search}%'))
+        db.session.commit()
 
-    # Paginate the results
-    sessions = query.paginate(page=page, per_page=limit, error_out=False)
-
-    # Convert sessions to a list of dictionaries
-    sessions_list = [{
-        "id": session.id,
-        "username": session.username,
-        "name": session.name,
-        "date": session.date,
-        "startTime": session.startTime,
-        "fastestLap": session.fastestLap,
-        "slowestLap": session.slowestLap,
-        "averageLap": session.averageLap,
-        "consistency": session.consistency,
-        "totalTime": session.totalTime,
-        "location": session.location,
-        "dateTime": session.dateTime,
-        "laps": session.laps,
-        "sectors": session.sectors
-    } for session in sessions.items]
-
-    return jsonify({
-        'sessions': sessions_list,
-        'totalPages': sessions.pages
-    })
+        return jsonify({"message": "Session updated successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating session: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
