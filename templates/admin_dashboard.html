@@ -133,25 +133,29 @@
             window.location.href = `/admin/edit-session/${sessionId}`;
         }
 
-        function deleteSession(sessionId) {
-            if (confirm("Are you sure you want to delete this session?")) {
-                fetch(`/admin/delete-session/${sessionId}`, {
-                    method: 'DELETE',
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.message) {
-                        alert(data.message);
-                        window.location.reload();
-                    } else {
-                        alert(data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error("Error deleting session:", error);
-                });
+       function editSession(sessionId) {
+    window.location.href = `/admin/edit-session/${sessionId}`;
+}
+
+function deleteSession(sessionId) {
+    if (confirm("Are you sure you want to delete this session?")) {
+        fetch(`/admin/delete-session/${sessionId}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.error);
             }
-        }
+        })
+        .catch(error => {
+            console.error("Error deleting session:", error);
+        });
+    }
+}
     </script>
 </body>
 </html>
