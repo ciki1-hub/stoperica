@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template  # Add render_template here
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -37,7 +37,7 @@ with app.app_context():
 # Serve the index.html file
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html')  # Render the index.html template
 
 # Handle session uploads
 @app.route('/upload', methods=['POST'])
