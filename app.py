@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from sqlalchemy.exc import OperationalError
@@ -56,7 +56,7 @@ def handle_exception(e):
 # Serve the index.html file
 @app.route('/')
 def index():
-    return "Welcome to the Stopwatch App"
+    return render_template('index.html')  # Serve index.html from the templates directory
 
 # Handle session uploads
 @app.route('/upload', methods=['POST'])
