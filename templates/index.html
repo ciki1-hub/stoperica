@@ -7,90 +7,85 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: white;
+            text-align: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+        h1 {
+            font-size: 3rem;
+            margin: 20px 0;
+            color: #f4b400;
         }
         #searchBox {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            border: none;
+            border-radius: 8px;
             font-size: 16px;
         }
         #session-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(250px, 1fr)); /* 4 columns with a minimum width of 250px */
-            gap: 20px; /* Space between cards */
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px;
         }
         .session-card {
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            background: #1e1e1e;
+            border-radius: 10px;
             padding: 15px;
-            background-color: #f9f9f9;
+            box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
         }
         .session-card h3 {
-            margin-top: 0;
-        }
-        .session-card p {
-            margin: 5px 0;
-        }
-        .lap {
-            margin-left: 20px;
-        }
-        .sector {
-            margin-left: 40px;
+            color: #f4b400;
         }
         #pagination {
             margin-top: 20px;
-            text-align: center;
         }
         #pagination button {
             padding: 10px 20px;
-            margin: 0 5px;
-            border: 1px solid #ccc;
+            margin: 5px;
+            border: none;
             border-radius: 5px;
-            background-color: #f9f9f9;
+            background-color: #f4b400;
+            color: black;
             cursor: pointer;
+            font-size: 16px;
         }
         #pagination button:disabled {
-            background-color: #ddd;
+            background-color: #555;
             cursor: not-allowed;
-        }
-        #loading {
-            text-align: center;
-            margin: 20px 0;
-            display: none;
         }
     </style>
 </head>
 <body>
-    <h1>Session Viewer</h1>
-
-    <!-- Search Box -->
-    <input type="text" id="searchBox" placeholder="Search by username...">
-
-    <!-- Session Grid -->
-    <div id="session-grid">
-        <!-- Session cards will be displayed here -->
-    </div>
-
-    <!-- Loading Spinner -->
-    <div id="loading">Loading...</div>
-
-    <!-- Pagination -->
-    <div id="pagination">
-        <button id="prevPage" disabled>Previous</button>
-        <span id="pageInfo">Page 1 of 1</span>
-        <button id="nextPage" disabled>Next</button>
+    <div class="container">
+        <h1>Motosport StopWatch</h1>
+        <input type="text" id="searchBox" placeholder="Search by username...">
+        <div id="session-grid">
+            <!-- Session cards will be displayed here -->
+        </div>
+        <div id="loading">Loading...</div>
+        <div id="pagination">
+            <button id="prevPage" disabled>Previous</button>
+            <span id="pageInfo">Page 1 of 1</span>
+            <button id="nextPage" disabled>Next</button>
+        </div>
     </div>
 
     <script>
         let currentPage = 1;
         let totalPages = 1;
         let searchTerm = '';
-        const sessionsPerPage = 10; // Number of sessions per page
+        const sessionsPerPage = 10; 
 
-        // Fetch and display session data
         async function fetchSessions(page = 1, search = '') {
             showLoading(true);
             const response = await fetch(`/sessions?page=${page}&limit=${sessionsPerPage}&search=${search}`);
@@ -102,10 +97,9 @@
             updatePagination();
         }
 
-        // Display session data in a grid layout
         function displaySessions(sessions) {
             const sessionGrid = document.getElementById('session-grid');
-            sessionGrid.innerHTML = ''; // Clear previous data
+            sessionGrid.innerHTML = '';
 
             if (sessions.length === 0) {
                 sessionGrid.textContent = 'No sessions found.';
@@ -128,20 +122,16 @@
                     <p><strong>Consistency:</strong> ${session.consistency}</p>
                 `;
 
-                // Display laps and sectors
                 session.laps.forEach((lap, lapIndex) => {
                     const lapDiv = document.createElement('div');
                     lapDiv.className = 'lap';
                     lapDiv.innerHTML = `<strong>Lap ${lapIndex + 1}:</strong> ${lap}`;
-
-                    // Display sectors for this lap
                     session.sectors[lapIndex].forEach((sector, sectorIndex) => {
                         const sectorDiv = document.createElement('div');
                         sectorDiv.className = 'sector';
                         sectorDiv.innerHTML = `<strong>Sector ${sectorIndex + 1}:</strong> ${sector}`;
                         lapDiv.appendChild(sectorDiv);
                     });
-
                     sessionCard.appendChild(lapDiv);
                 });
 
@@ -149,27 +139,19 @@
             });
         }
 
-        // Update pagination buttons and page info
         function updatePagination() {
-            const prevPageButton = document.getElementById('prevPage');
-            const nextPageButton = document.getElementById('nextPage');
-            const pageInfo = document.getElementById('pageInfo');
-
-            prevPageButton.disabled = currentPage <= 1;
-            nextPageButton.disabled = currentPage >= totalPages;
-            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
         }
 
-        // Show or hide the loading spinner
         function showLoading(show) {
-            const loadingDiv = document.getElementById('loading');
-            loadingDiv.style.display = show ? 'block' : 'none';
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
         }
 
-        // Add event listeners
         document.getElementById('searchBox').addEventListener('input', () => {
             searchTerm = document.getElementById('searchBox').value.trim();
-            currentPage = 1; // Reset to the first page when searching
+            currentPage = 1;
             fetchSessions(currentPage, searchTerm);
         });
 
@@ -187,7 +169,6 @@
             }
         });
 
-        // Fetch sessions when the page loads
         fetchSessions(currentPage, searchTerm);
     </script>
 </body>
