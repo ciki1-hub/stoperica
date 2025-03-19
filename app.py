@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 from datetime import datetime
 
@@ -36,13 +35,13 @@ login_manager.init_app(app)
 class Admin(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)  # Increased to 256 characters
+    password = db.Column(db.String(50), nullable=False)  # Store plain text password
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password = password  # Store password as plain text
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return self.password == password  # Compare plain text passwords
 
 # Define the Session model
 class Session(db.Model):
@@ -67,11 +66,11 @@ with app.app_context():
 
     # Add the admin user if it doesn't already exist
     admin_username = "admin"
-    admin_password = "Bitola123!@#1"
+    admin_password = "Bitola123!@#1"  # Plain text password
     admin_user = Admin.query.filter_by(username=admin_username).first()
     if not admin_user:
         admin_user = Admin(username=admin_username)
-        admin_user.set_password(admin_password)
+        admin_user.set_password(admin_password)  # Set plain text password
         db.session.add(admin_user)
         db.session.commit()
         app.logger.info("Admin user created successfully.")
@@ -89,7 +88,7 @@ def admin_login():
     password = data.get('password')
 
     admin = Admin.query.filter_by(username=username).first()
-    if admin and admin.check_password(password):
+    if admin and admin.check_password(password):  # Compare plain text passwords
         login_user(admin)
         return jsonify({"message": "Login successful"}), 200
     else:
