@@ -81,7 +81,16 @@ def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
 
-    return render_template('admin_dashboard.html')
+    # Fetch all sessions from the database
+    sessions = Session.query.all()
+    app.logger.info(f"Sessions fetched: {sessions}")  # Log sessions for debugging
+    return render_template('admin_dashboard.html', sessions=sessions)
+
+# Admin logout route
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)  # Clear the admin session
+    return redirect(url_for('admin_login'))
 
 # Handle session uploads
 @app.route('/upload', methods=['POST'])
