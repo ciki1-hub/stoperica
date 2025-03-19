@@ -59,6 +59,12 @@ def handle_exception(e):
 def index():
     return render_template('index.html')
 
+# About page route
+@app.route('/about')
+def about():
+    app.logger.info("About page accessed")  # Log when the About page is accessed
+    return render_template('about.html')
+
 # Admin login route
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
