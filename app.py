@@ -92,6 +92,52 @@ def admin_logout():
     session.pop('admin_logged_in', None)  # Clear the admin session
     return redirect(url_for('admin_login'))
 
+# Edit session route
+@app.route('/admin/edit-session/<session_id>', methods=['GET', 'POST'])
+def admin_edit_session(session_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    session_to_edit = Session.query.get(session_id)
+    if not session_to_edit:
+        return jsonify({"error": "Session not found"}), 404
+
+    if request.method == 'POST':
+        data = request.form
+        session_to_edit.username = data.get('username', session_to_edit.username)
+        session_to_edit.name = data.get('name', session_to_edit.name)
+        session_to_edit.date = data.get('date', session_to_edit.date)
+        session_to_edit.startTime = data.get('startTime', session_to_edit.startTime)
+        session_to_edit.fastestLap = data.get('fastestLap', session_to_edit.fastestLap)
+        session_to_edit.slowestLap = data.get('slowestLap', session_to_edit.slowestLap)
+        session_to_edit.averageLap = data.get('averageLap', session_to_edit.averageLap)
+        session_to_edit.consistency = data.get('consistency', session_to_edit.consistency)
+        session_to_edit.totalTime = data.get('totalTime', session_to_edit.totalTime)
+        session_to_edit.location = data.get('location', session_to_edit.location)
+        session_to_edit.dateTime = data.get('dateTime', session_to_edit.dateTime)
+        session_to_edit.laps = data.get('laps', session_to_edit.laps)
+        session_to_edit.sectors = data.get('sectors', session_to_edit.sectors)
+
+        db.session.commit()
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('edit_session.html', session=session_to_edit)
+
+# Delete session route
+@app.route('/admin/delete-session/<session_id>', methods=['DELETE'])
+def admin_delete_session(session_id):
+    if not session.get('admin_logged_in'):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    session_to_delete = Session.query.get(session_id)
+    if not session_to_delete:
+        return jsonify({"error": "Session not found"}), 404
+
+    db.session.delete(session_to_delete)
+    db.session.commit()
+
+    return jsonify({"message": "Session deleted successfully"}), 200
+
 # Handle session uploads
 @app.route('/upload', methods=['POST'])
 def upload_session():
