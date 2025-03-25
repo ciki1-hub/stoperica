@@ -244,7 +244,11 @@ def create_session():
         db.session.rollback()
         logger.error(f"Failed to create session: {e}")
         return jsonify({"error": "Failed to create session"}), 500
-
+        
+@app.route('/privacy')
+def privacy_policy():
+    return render_template('privacy.html')
+    
 @app.route('/api/sessions/<session_id>', methods=['DELETE'])
 def delete_session(session_id):
     try:
