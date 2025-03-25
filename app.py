@@ -64,7 +64,12 @@ def index():
 def about():
     app.logger.info("About page accessed")  # Log when the About page is accessed
     return render_template('about.html')
-
+    
+@app.route('/privacy')
+def privacy_policy():
+    app.logger.info("Privacy policy page accessed")
+    return render_template('privacy.html')
+    
 # Admin login route
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
