@@ -1,10 +1,9 @@
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from sqlalchemy import inspect
+from sqlalchemy import text, inspect
 from sqlalchemy.exc import OperationalError, IntegrityError
 import logging
-from time import sleep
 from datetime import datetime
 import os
 
@@ -49,8 +48,8 @@ class Session(db.Model):
     dateTime = db.Column(db.String(30), nullable=False)
     laps = db.Column(db.JSON, nullable=False)
     sectors = db.Column(db.JSON, nullable=False)
-    topSpeed = db.Column(db.String(20), nullable=True)  # New speed metric
-    averageSpeed = db.Column(db.String(20), nullable=True)  # New speed metric
+    topSpeed = db.Column(db.String(20), nullable=True)
+    averageSpeed = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 def initialize_database():
@@ -68,26 +67,28 @@ def initialize_database():
                 
                 # List of columns that should exist
                 required_columns = {
-                    'id', 'username', 'name', 'date', 'startTime',
-                    'fastestLap', 'slowestLap', 'averageLap', 'consistency',
-                    'totalTime', 'location', 'dateTime', 'laps', 'sectors',
                     'topSpeed', 'averageSpeed', 'created_at'
                 }
                 
-                # Add any missing columns
-                for column in required_columns - existing_columns:
-                    if column == 'topSpeed':
-                        db.engine.execute('ALTER TABLE session ADD COLUMN "topSpeed" VARCHAR(20)')
+                # Add any missing columns using proper SQLAlchemy 2.0 connection
+                with db.engine.connect() as connection:
+                    if 'topSpeed' not in existing_columns:
+                        connection.execute(text('ALTER TABLE session ADD COLUMN "topSpeed" VARCHAR(20)'))
                         logger.info("Added topSpeed column to session table")
-                    elif column == 'averageSpeed':
-                        db.engine.execute('ALTER TABLE session ADD COLUMN "averageSpeed" VARCHAR(20)')
+                        connection.commit()
+                    
+                    if 'averageSpeed' not in existing_columns:
+                        connection.execute(text('ALTER TABLE session ADD COLUMN "averageSpeed" VARCHAR(20)'))
                         logger.info("Added averageSpeed column to session table")
-                    elif column == 'created_at':
-                        db.engine.execute('ALTER TABLE session ADD COLUMN created_at TIMESTAMP')
+                        connection.commit()
+                    
+                    if 'created_at' not in existing_columns:
+                        connection.execute(text('ALTER TABLE session ADD COLUMN created_at TIMESTAMP'))
                         logger.info("Added created_at column to session table")
+                        connection.commit()
                         
         except Exception as e:
-            logger.error(f"Database initialization error: {str(e)}")
+            logger.error(f"Database initialization error: {str(e)}", exc_info=True)
             raise
 
 # Initialize the database when starting the app
