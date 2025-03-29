@@ -177,6 +177,27 @@ def admin_delete_session(session_id):
         logger.error(f"Error deleting session: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/delete-session/<session_id>', methods=['DELETE'])
+def delete_session(session_id):
+    try:
+        username = request.headers.get('Username')
+        if not username:
+            return jsonify({"error": "Username header is required"}), 400
+
+        session_to_delete = Session.query.get_or_404(session_id)
+        
+        # Check if the user owns the session or is admin
+        if session_to_delete.username != username and not session.get('admin_logged_in'):
+            return jsonify({"error": "You are not authorized to delete this session"}), 403
+
+        db.session.delete(session_to_delete)
+        db.session.commit()
+        return jsonify({"message": "Session deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting session: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/upload', methods=['POST'])
 def upload_session():
     try:
