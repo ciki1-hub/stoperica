@@ -4,16 +4,17 @@ from flask_cors import CORS
 from sqlalchemy.exc import OperationalError
 import logging
 from time import sleep
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
-app.secret_key = 'your_secret_key'
+app.secret_key = 'your_secret_key'  # Required for session management
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 app.logger.info("Starting Flask application...")
 
-# Database configuration
+# Configure the PostgreSQL database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://mx_smolevo_user:9ai3RH9QBiCN6l0JbcgQ1EAMMvsJ07DO@dpg-cvd1h81u0jms739j2pig-a/mx_smolevo'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -24,8 +25,10 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'max_overflow': 20,
 }
 
+# Initialize the database
 db = SQLAlchemy(app)
 
+# Define the Session model with speed metrics
 class Session(db.Model):
     id = db.Column(db.String, primary_key=True)
     username = db.Column(db.String, nullable=False)
@@ -41,59 +44,101 @@ class Session(db.Model):
     dateTime = db.Column(db.String, nullable=False)
     laps = db.Column(db.JSON, nullable=False)
     sectors = db.Column(db.JSON, nullable=False)
-    topSpeed = db.Column(db.String, nullable=True)  # New field
-    averageSpeed = db.Column(db.String, nullable=True)  # New field
+    topSpeed = db.Column(db.String, nullable=True)  # New field for top speed
+    averageSpeed = db.Column(db.String, nullable=True)  # New field for average speed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # New field for creation timestamp
 
+# Create the database tables and handle migrations
 with app.app_context():
+    # First create all tables
     db.create_all()
+    
+    # Then check and add any missing columns
+    try:
+        inspector = db.inspect(db.engine)
+        if 'session' in inspector.get_table_names():
+            columns = inspector.get_columns('session')
+            column_names = [col['name'] for col in columns]
+            
+            if 'topSpeed' not in column_names:
+                db.engine.execute('ALTER TABLE session ADD COLUMN topSpeed VARCHAR')
+                app.logger.info("Added topSpeed column to database")
+            
+            if 'averageSpeed' not in column_names:
+                db.engine.execute('ALTER TABLE session ADD COLUMN averageSpeed VARCHAR')
+                app.logger.info("Added averageSpeed column to database")
+                
+            if 'created_at' not in column_names:
+                db.engine.execute('ALTER TABLE session ADD COLUMN created_at TIMESTAMP')
+                app.logger.info("Added created_at column to database")
+    except Exception as e:
+        app.logger.error(f"Error during database migration: {e}")
 
+# Error handler for uncaught exceptions
 @app.errorhandler(Exception)
 def handle_exception(e):
     app.logger.error(f"Unhandled exception: {e}")
     return jsonify({"error": "An internal error occurred"}), 500
 
+# Serve the index.html file
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# About page route
 @app.route('/about')
 def about():
+    app.logger.info("About page accessed")
     return render_template('about.html')
     
 @app.route('/privacy')
 def privacy_policy():
+    app.logger.info("Privacy policy page accessed")
     return render_template('privacy.html')
 
+# Admin login route
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+
+        # Hardcoded admin credentials (not secure for production)
         if username == 'admin' and password == 'Bitola123!@#1':
             session['admin_logged_in'] = True
             return redirect(url_for('admin_dashboard'))
-        return "Invalid credentials", 401
+        else:
+            return "Invalid credentials", 401
+
     return render_template('admin_login.html')
 
+# Admin dashboard route
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    sessions = Session.query.all()
+
+    # Fetch all sessions from the database
+    sessions = Session.query.order_by(Session.created_at.desc()).all()
+    app.logger.info(f"Sessions fetched: {len(sessions)}")
     return render_template('admin_dashboard.html', sessions=sessions)
 
+# Admin logout route
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
 
+# Edit session route
 @app.route('/admin/edit-session/<session_id>', methods=['GET', 'POST'])
 def admin_edit_session(session_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
+
     session_to_edit = Session.query.get(session_id)
     if not session_to_edit:
         return jsonify({"error": "Session not found"}), 404
+
     if request.method == 'POST':
         data = request.form
         session_to_edit.username = data.get('username', session_to_edit.username)
@@ -111,21 +156,28 @@ def admin_edit_session(session_id):
         session_to_edit.sectors = data.get('sectors', session_to_edit.sectors)
         session_to_edit.topSpeed = data.get('topSpeed', session_to_edit.topSpeed)
         session_to_edit.averageSpeed = data.get('averageSpeed', session_to_edit.averageSpeed)
+
         db.session.commit()
         return redirect(url_for('admin_dashboard'))
+
     return render_template('edit_session.html', session=session_to_edit)
 
+# Delete session route
 @app.route('/admin/delete-session/<session_id>', methods=['DELETE'])
 def admin_delete_session(session_id):
     if not session.get('admin_logged_in'):
         return jsonify({"error": "Unauthorized"}), 401
+
     session_to_delete = Session.query.get(session_id)
     if not session_to_delete:
         return jsonify({"error": "Session not found"}), 404
+
     db.session.delete(session_to_delete)
     db.session.commit()
+
     return jsonify({"message": "Session deleted successfully"}), 200
 
+# Handle session uploads
 @app.route('/upload', methods=['POST'])
 def upload_session():
     try:
@@ -135,17 +187,18 @@ def upload_session():
 
         required_fields = [
             "id", "username", "name", "date", "startTime", 
-            "fastestLap", "slowestLap", "averageLap", 
-            "consistency", "totalTime", "location", 
-            "dateTime", "laps", "sectors"
+            "fastestLap", "slowestLap", "averageLap", "consistency",
+            "totalTime", "location", "dateTime", "laps", "sectors"
         ]
         
         for field in required_fields:
             if field not in data:
                 return jsonify({"error": f"Missing required field: {field}"}), 400
 
+        # Check if a session with the same ID already exists
         existing_session = Session.query.get(data['id'])
         if existing_session:
+            # Update the existing session with speed data
             existing_session.username = data['username']
             existing_session.name = data['name']
             existing_session.date = data['date']
@@ -164,6 +217,7 @@ def upload_session():
             db.session.commit()
             return jsonify({"message": "Session updated successfully"}), 200
         else:
+            # Insert a new session with speed data
             session = Session(
                 id=data['id'],
                 username=data['username'],
@@ -190,25 +244,31 @@ def upload_session():
         app.logger.error(f"Error uploading session: {e}")
         return jsonify({"error": str(e)}), 500
 
+# Handle session deletion
 @app.route('/delete-session/<session_id>', methods=['DELETE'])
 def delete_session(session_id):
     try:
         username = request.headers.get('Username')
         if not username:
             return jsonify({"error": "Username header is required"}), 400
+
         session = Session.query.get(session_id)
         if not session:
             return jsonify({"error": "Session not found"}), 404
+
         if session.username != username:
-            return jsonify({"error": "Unauthorized"}), 403
+            return jsonify({"error": "You are not authorized to delete this session"}), 403
+
         db.session.delete(session)
         db.session.commit()
+
         return jsonify({"message": "Session deleted successfully"}), 200
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Error deleting session: {e}")
         return jsonify({"error": str(e)}), 500
 
+# Return paginated and filtered sessions
 @app.route('/sessions', methods=['GET'])
 def get_sessions():
     retries = 3
@@ -222,7 +282,11 @@ def get_sessions():
             if search:
                 query = query.filter(Session.username.ilike(f'%{search}%'))
 
-            sessions = query.paginate(page=page, per_page=limit, error_out=False)
+            sessions = query.order_by(Session.created_at.desc()).paginate(
+                page=page, 
+                per_page=limit, 
+                error_out=False
+            )
 
             sessions_list = [{
                 "id": session.id,
@@ -240,7 +304,8 @@ def get_sessions():
                 "laps": session.laps,
                 "sectors": session.sectors,
                 "topSpeed": session.topSpeed,
-                "averageSpeed": session.averageSpeed
+                "averageSpeed": session.averageSpeed,
+                "createdAt": session.created_at.isoformat() if session.created_at else None
             } for session in sessions.items]
 
             return jsonify({
@@ -249,9 +314,10 @@ def get_sessions():
             })
         except OperationalError as e:
             if attempt < retries - 1:
-                sleep(1)
+                sleep(1)  # Wait before retrying
                 continue
-            return jsonify({"error": "Database connection failed"}), 500
+            else:
+                return jsonify({"error": "Database connection failed"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
