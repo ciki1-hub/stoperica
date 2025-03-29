@@ -93,6 +93,11 @@
             color: #555;
         }
 
+        .speed-metric {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+
         .lap {
             margin-left: 20px;
             font-size: 0.9rem;
@@ -147,7 +152,6 @@
             <a href="/">Home</a>
             <a href="/about">About</a>
             <a href="/privacy">Privacy Policy</a>
-
         </div>
     </div>
 
@@ -213,24 +217,30 @@
                     <p><strong>Slowest Lap:</strong> ${session.slowestLap}</p>
                     <p><strong>Average Lap:</strong> ${session.averageLap}</p>
                     <p><strong>Consistency:</strong> ${session.consistency}</p>
+                    <p class="speed-metric"><strong>Top Speed:</strong> ${session.topSpeed || 'N/A'} km/h</p>
+                    <p class="speed-metric"><strong>Average Speed:</strong> ${session.averageSpeed || 'N/A'} km/h</p>
                 `;
 
                 // Display laps and sectors
-                session.laps.forEach((lap, lapIndex) => {
-                    const lapDiv = document.createElement('div');
-                    lapDiv.className = 'lap';
-                    lapDiv.innerHTML = `<strong>Lap ${lapIndex + 1}:</strong> ${lap}`;
+                if (session.laps && session.laps.length > 0) {
+                    session.laps.forEach((lap, lapIndex) => {
+                        const lapDiv = document.createElement('div');
+                        lapDiv.className = 'lap';
+                        lapDiv.innerHTML = `<strong>Lap ${lapIndex + 1}:</strong> ${lap}`;
 
-                    // Display sectors for this lap
-                    session.sectors[lapIndex].forEach((sector, sectorIndex) => {
-                        const sectorDiv = document.createElement('div');
-                        sectorDiv.className = 'sector';
-                        sectorDiv.innerHTML = `<strong>Sector ${sectorIndex + 1}:</strong> ${sector}`;
-                        lapDiv.appendChild(sectorDiv);
+                        // Display sectors for this lap if available
+                        if (session.sectors && session.sectors[lapIndex]) {
+                            session.sectors[lapIndex].forEach((sector, sectorIndex) => {
+                                const sectorDiv = document.createElement('div');
+                                sectorDiv.className = 'sector';
+                                sectorDiv.innerHTML = `<strong>Sector ${sectorIndex + 1}:</strong> ${sector}`;
+                                lapDiv.appendChild(sectorDiv);
+                            });
+                        }
+
+                        sessionCard.appendChild(lapDiv);
                     });
-
-                    sessionCard.appendChild(lapDiv);
-                });
+                }
 
                 sessionGrid.appendChild(sessionCard);
             });
